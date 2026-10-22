@@ -62,17 +62,46 @@ add({ s: "the list stayed onchain", x: 240, y: 590, size: 56, t0: 8.0, t1: 11.0,
 add({ s: "sworn reads that history", x: 240, y: 490, size: 56, t0: 11.3, t1: 17.0 });
 add({ s: "and turns it into facts about wallets", x: 240, y: 590, size: 56, t0: 13.3, t1: 17.0, cursor: true });
 // (4) 17-28, text column right of the card
-const TX = 870;
-add({ s: "every card starts empty", x: TX, y: 420, size: 34, t0: 17.4, t1: 28.0 });
-add({ s: "direct facts light up straight from the chain", x: TX, y: 500, size: 34, t0: 19.8, t1: 28.0 });
-add({ s: "25 facts. 13 families.", x: TX, y: 580, size: 34, color: ACC, t0: 24.0, t1: 28.0 });
-add({ s: "card #1, minted: Registry.tokenURI(1)", x: TX, y: 700, size: 22, color: MUT, cps: 0, t0: 17.4, t1: 19.6 });
-add({ s: "previews: Renderer.tokenURIOf + state override", x: TX, y: 700, size: 22, color: MUT, cps: 0, t0: 19.6, t1: 28.0 });
+// sizes for phones: main lines 46 px, card labels 28 px. A line that would pass the
+// right margin wraps at a word boundary (after a full stop when that fits) onto a
+// second line, typed on after the first; the lines below move down to make room.
+const TX = 870, MAXX = W - 60, MAIN = 46, LABEL = 28, LEAD = 58, GAP = 80;
+const fits = (s, size, x) => x + s.length * size * 0.6 <= MAXX; // Liberation Mono advance = 0.6 em
+function wrap(s, size, x) {
+  if (fits(s, size, x)) return [s];
+  const w = s.split(" ");
+  let best = null;
+  for (let i = 1; i < w.length; i++) {
+    const a = w.slice(0, i).join(" "), b = w.slice(i).join(" ");
+    if (!fits(a, size, x) || !fits(b, size, x)) continue;
+    const score = (a.endsWith(".") ? 0 : 1000) + Math.max(a.length, b.length);
+    if (!best || score < best.score) best = { score, parts: [a, b] };
+  }
+  if (!best) throw new Error("cannot wrap: " + s);
+  return best.parts;
+}
+// adds a (possibly wrapped) line and returns the baseline of its last row
+function addWrapped(o) {
+  const cps = o.cps === undefined ? 28 : o.cps;
+  let t0 = o.t0, y = o.y;
+  wrap(o.s, o.size, o.x).forEach((s, i) => {
+    y = o.y + i * LEAD;
+    add({ ...o, s, y, t0 });
+    if (cps) t0 += (s.length + 1) / cps;
+  });
+  return y;
+}
+let y4 = addWrapped({ s: "every card starts empty", x: TX, y: 420, size: MAIN, t0: 17.4, t1: 28.0 });
+y4 = addWrapped({ s: "direct facts light up straight from the chain", x: TX, y: y4 + GAP, size: MAIN, t0: 19.8, t1: 28.0 });
+y4 = addWrapped({ s: "25 facts. 13 families.", x: TX, y: y4 + GAP, size: MAIN, color: ACC, t0: 24.0, t1: 28.0 });
+add({ s: "card #1, minted: Registry.tokenURI(1)", x: TX, y: y4 + 120, size: LABEL, color: MUT, cps: 0, t0: 17.4, t1: 19.6 });
+add({ s: "previews: Renderer.tokenURIOf + state override", x: TX, y: y4 + 120, size: LABEL, color: MUT, cps: 0, t0: 19.6, t1: 28.0 });
 // (5) 28-39
-add({ s: "the rest is sworn by the swarm", x: TX, y: 400, size: 34, t0: 28.4, t1: 39.0 });
-add({ s: "11 IMD agents read the logs. 7 must agree", x: TX, y: 480, size: 34, t0: 30.8, t1: 39.0 });
-add({ s: "the oracle signs. the registry checks.", x: TX, y: 640, size: 34, t0: 35.2, t1: 39.0 });
-add({ s: "card #3, minted: Registry.tokenURI(3)", x: TX, y: 760, size: 22, color: MUT, cps: 0, t0: 28.4, t1: 39.0 });
+let y5 = addWrapped({ s: "the rest is sworn by the swarm", x: TX, y: 400, size: MAIN, t0: 28.4, t1: 39.0 });
+y5 = addWrapped({ s: "11 IMD agents read the logs. 7 must agree", x: TX, y: y5 + GAP, size: MAIN, t0: 30.8, t1: 39.0 });
+const MARKY = y5 + 52; // the eleven seat markers sit under the agents line, as before
+y5 = addWrapped({ s: "the oracle signs. the registry checks.", x: TX, y: MARKY + 24 + 84, size: MAIN, t0: 35.2, t1: 39.0 });
+add({ s: "card #3, minted: Registry.tokenURI(3)", x: TX, y: y5 + 120, size: LABEL, color: MUT, cps: 0, t0: 28.4, t1: 39.0 });
 // (6) 39-46, code on black
 add({ s: "hasTrait(wallet, 601)", x: 360, y: 420, size: 52, t0: 39.3, t1: 46.0, cps: 18 });
 add({ s: "true", x: 360, y: 500, size: 52, color: ACC, cps: 0, t0: 41.0, t1: 46.0 });
@@ -82,7 +111,7 @@ add({ s: "no merkle root. no snapshot.", x: 360, y: 710, size: 40, t0: 43.6, t1:
 add({ s: "mint a card: 0.1 IMD", x: 240, y: 400, size: 52, t0: 46.3, t1: 52.0 });
 add({ s: "request a fact: 0.5 IMD", x: 240, y: 490, size: 52, t0: 47.5, t1: 52.0 });
 add({ s: "your card updates itself", x: 240, y: 580, size: 52, color: ACC, t0: 48.8, t1: 52.0 });
-add({ s: "fees are forwarded to the BurnExecutor for bridging and burning on Base", x: 240, y: 700, size: 24, color: MUT, cps: 0, t0: 49.6, t1: 52.0 });
+add({ s: "fees are forwarded to the BurnExecutor for bridging and burning on Base", x: 240, y: 700, size: 34, color: MUT, cps: 0, t0: 49.6, t1: 52.0 });
 // (8) 52-56
 add({ s: "contracts, site and this video: built by the swarm", x: 200, y: 490, size: 44, t0: 52.3, t1: 56.0, cps: 36 });
 add({ s: "no owner. no backend. no coin.", x: 200, y: 580, size: 44, t0: 53.8, t1: 56.0, cursor: true });
@@ -106,7 +135,7 @@ function frame(t) {
     for (let i = 0; i < 11; i++) {
       const on = t >= 32.0 + i * 0.3;
       const x = TX + i * 40;
-      b += `<rect x="${x}" y="532" width="24" height="24" fill="${on ? ACC : "none"}" stroke="${on ? ACC : MUT}" stroke-width="2" opacity="${op.toFixed(3)}"/>`;
+      b += `<rect x="${x}" y="${MARKY}" width="24" height="24" fill="${on ? ACC : "none"}" stroke="${on ? ACC : MUT}" stroke-width="2" opacity="${op.toFixed(3)}"/>`;
     }
   }
   // (9) the Sworn mark
